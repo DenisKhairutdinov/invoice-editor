@@ -1,0 +1,22 @@
+﻿import astro from 'eslint-plugin-astro';
+import tseslint from 'typescript-eslint';
+
+export default [
+  {
+    ignores: [
+      'dist/**',
+      '.astro/**',
+      'playwright-report/**',
+      'test-results/**',
+      '.tools/**',
+    ],
+  },
+  ...tseslint.configs.recommended,
+  ...astro.configs['flat/recommended'],
+  {
+    files: ['**/*.astro'],
+    languageOptions: {
+      parserOptions: { parser: tseslint.parser },
+    },
+  },
+];

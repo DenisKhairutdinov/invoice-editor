@@ -1,0 +1,54 @@
+{
+  "name": "invoice-editor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "lint:styles": "stylelint src/**/*.scss",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource/noto-sans": "^5.2.0",
+    "@pdf-lib/fontkit": "^1.1.1",
+    "astro": "^7.4.13",
+    "docx": "^9.5.1",
+    "docx-preview": "^0.3.6",
+    "html2canvas": "^1.4.1",
+    "idb-keyval": "^6.2.1",
+    "jszip": "^3.10.1",
+    "lucide-static": "^1.79.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "qrcode": "^1.5.4",
+    "sass": "^1.83.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@axe-core/playwright": "^4.14.1",
+    "@napi-rs/canvas": "^0.1.100",
+    "@playwright/test": "^1.65.1",
+    "@types/qrcode": "^1.5.5",
+    "eslint": "^10.15.0",
+    "eslint-plugin-astro": "^3.2.1",
+    "jsqr": "^1.4.0",
+    "prettier": "^3.10.1",
+    "prettier-plugin-astro": "^1.1.2",
+    "stylelint": "^18.1.0",
+    "stylelint-config-standard-scss": "^18.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.74.0",
+    "vitest": "^5.1.1"
+  },
+  "engines": {
+    "node": ">=24.16.0"
+  }
+}

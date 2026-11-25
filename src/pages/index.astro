@@ -1,0 +1,422 @@
+---
+import '@fontsource-variable/inter';
+import favicon from '../assets/favicon.svg?url';
+import '../styles/main.scss';
+import arrowLeft from 'lucide-static/icons/chevron-left.svg?url';
+import arrowRight from 'lucide-static/icons/chevron-right.svg?url';
+import closeIcon from 'lucide-static/icons/x.svg?url';
+import downloadIcon from 'lucide-static/icons/download.svg?url';
+import fileIcon from 'lucide-static/icons/file-text.svg?url';
+import lockIcon from 'lucide-static/icons/lock-keyhole.svg?url';
+import settingsIcon from 'lucide-static/icons/sliders-horizontal.svg?url';
+import uploadIcon from 'lucide-static/icons/upload.svg?url';
+import noBannerIcon from 'lucide-static/icons/image-off.svg?url';
+import checkIcon from 'lucide-static/icons/check.svg?url';
+
+const formats = [
+  { value: 'pdf', label: 'PDF' },
+  { value: 'jpeg', label: 'JPEG' },
+  { value: 'docx', label: 'Word' },
+];
+---
+
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Редактор счетов</title>
+    {import.meta.env.PROD && (
+      <meta
+        http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'self' about:; base-uri 'none'; form-action 'none';"
+      />
+    )}
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <form id="editor" novalidate>
+      <header class="top">
+        <div class="brand">
+          <span class="brand-icon">
+            <img src={fileIcon} alt="" />
+          </span>
+          <h1>Редактор счетов</h1>
+        </div>
+        <div class="header-actions">
+          <button
+            type="button"
+            class="secondary mobile-toggle"
+            id="toggle-panel"
+            aria-controls="editor-panel"
+            aria-expanded="false"
+          >
+            <img src={settingsIcon} alt="" />
+            <span>Настройки</span>
+          </button>
+          <div class="export actions">
+            <select id="format" hidden>
+              {formats.map(({ value, label }) => (
+                <option value={value}>{label}</option>
+              ))}
+            </select>
+            <details id="format-picker" class="format-picker">
+              <summary aria-label="Формат скачивания: PDF">PDF</summary>
+              <div
+                class="format-options"
+                role="group"
+                aria-label="Форматы скачивания"
+              >
+                {formats.map(({ value, label }) => (
+                  <button
+                    type="button"
+                    value={value}
+                    aria-pressed={value === 'pdf'}
+                  >
+                    <span>{label}</span>
+                    <img src={checkIcon} alt="" />
+                  </button>
+                ))}
+              </div>
+            </details>
+            <button
+              type="button"
+              id="download"
+              aria-label="Скачать"
+              title="Скачать"
+              disabled
+            >
+              <img src={downloadIcon} alt="" />
+              <span>Скачать</span>
+            </button>
+          </div>
+        </div>
+      </header>
+      <main class="workspace">
+        <aside id="editor-panel" aria-label="Настройки счёта">
+          <section>
+            <div class="section-heading">
+              <h2>Исходный документ</h2>
+              <button
+                type="button"
+                class="ghost icon-button"
+                id="clear"
+                aria-label="Закрыть счёт"
+                title="Закрыть счёт"
+                disabled
+              >
+                <img src={closeIcon} alt="" />
+              </button>
+            </div>
+            <label id="drop" class="drop">
+              <span class="upload-icon">
+                <img src={uploadIcon} alt="" />
+              </span>
+              <span>Выбрать файл</span>
+              <small>или перетащить сюда</small>
+              <input
+                id="source"
+                type="file"
+                accept=".pdf,.docx"
+                aria-label="Выбрать файл счёта"
+                aria-describedby="filename"
+              />
+            </label>
+            <small id="filename">PDF, DOCX · до 20 МБ</small>
+          </section>
+          <section>
+            <div class="section-heading">
+              <h2>Баннер</h2>
+              <input
+                id="bannerEnabled"
+                class="switch"
+                type="checkbox"
+                role="switch"
+                aria-label="Добавить баннер"
+                checked
+              />
+            </div>
+            <select id="builtin" aria-label="Выбранный баннер" hidden>
+              <option value="">Без баннера</option>
+            </select>
+            <details id="banner-picker" class="banner-picker">
+              <summary aria-label="Без баннера">
+                <img class="banner-placeholder" src={noBannerIcon} alt="" />
+              </summary>
+              <div
+                id="banner-options"
+                class="banner-options"
+                role="group"
+                aria-label="Баннеры"
+              ></div>
+            </details>
+            <div class="actions banner-actions">
+              <label class="secondary file-button">
+                <img src={uploadIcon} alt="" /> Загрузить
+                <input
+                  id="banner"
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  aria-label="Загрузить свой баннер"
+                />
+              </label>
+              <button
+                type="button"
+                id="removeBanner"
+                class="secondary icon-button"
+                aria-label="Удалить выбранный пользовательский баннер"
+                title="Удалить выбранный пользовательский баннер"
+                disabled
+              >
+                <img src={closeIcon} alt="" />
+              </button>
+            </div>
+          </section>
+          <section>
+            <div class="section-heading">
+              <h2>Подвал</h2>
+              <input
+                id="footerEnabled"
+                class="switch"
+                type="checkbox"
+                role="switch"
+                aria-label="Добавить подвал"
+                checked
+              />
+            </div>
+            <button
+              type="button"
+              id="footer-settings"
+              class="secondary"
+              aria-haspopup="dialog"
+              aria-controls="footer-dialog"
+            >
+              <img src={settingsIcon} alt="" /> Реквизиты подвала
+            </button>
+            <div class="pair">
+              <label>
+                Размер, pt
+                <input
+                  id="fontSize"
+                  type="number"
+                  step="any"
+                  min="6"
+                  max="18"
+                  value="9"
+                />
+              </label>{' '}
+              <label>
+                QR, мм
+                <input
+                  id="qrSize"
+                  type="number"
+                  step="any"
+                  min="13"
+                  max="35"
+                  value="24"
+                />
+              </label>
+            </div>
+          </section>
+          <div class="sidebar-footer">
+            <button type="button" class="ghost" id="reset">
+              Сбросить настройки
+            </button>
+            <button type="submit" class="secondary">
+              Обновить
+            </button>
+          </div>
+        </aside>
+        <article aria-labelledby="preview-title">
+          <div class="toolbar viewer-heading">
+            <h2 id="preview-title">Предпросмотр</h2>
+            <span class="badge">A4</span>
+          </div>
+          <div class="stage">
+            <div id="preview" class="preview"></div>
+            <button type="button" id="preview-upload" class="empty-paper">
+              <span class="empty-icon">
+                <img src={fileIcon} alt="" />
+              </span>
+              <span class="empty-title">Выбрать файл</span>
+              <small>или перетащить сюда PDF или DOCX</small>
+            </button>
+          </div>
+          <div class="toolbar viewer-controls">
+            <div class="actions" role="group" aria-label="Страницы">
+              <button
+                type="button"
+                id="previous"
+                class="ghost icon-button"
+                aria-label="Предыдущая страница"
+                disabled
+              >
+                <img src={arrowLeft} alt="" />
+              </button>
+              <span id="pageNumber" class="page-number" aria-live="polite">
+                0 / 0
+              </span>
+              <button
+                type="button"
+                id="next"
+                class="ghost icon-button"
+                aria-label="Следующая страница"
+                disabled
+              >
+                <img src={arrowRight} alt="" />
+              </button>
+            </div>
+            <label class="zoom">
+              <span class="sr-only">Масштаб предпросмотра</span>
+              <input id="zoom" type="range" min="40" max="150" value="90" />
+              <span id="zoomValue" class="zoom-value">
+                90%
+              </span>
+            </label>
+          </div>
+        </article>
+        <div class="statusbar">
+          <div class="messages">
+            <p id="storage-status" role="status" hidden></p>
+            <p id="status" role="status">
+              Загрузите исходный счёт для предпросмотра.
+            </p>
+          </div>
+          <span class="privacy">
+            <img src={lockIcon} alt="" /> Локальная обработка
+          </span>
+        </div>
+        <dialog id="footer-dialog" aria-labelledby="footer-dialog-title">
+          <div class="section-heading">
+            <h2 id="footer-dialog-title">Реквизиты подвала</h2>
+            <button
+              type="button"
+              id="close-footer"
+              class="ghost icon-button"
+              aria-label="Закрыть"
+            >
+              <img src={closeIcon} alt="" />
+            </button>
+          </div>
+          <label>
+            Название компании
+            <input id="company" maxlength="160" value="ООО «Энергомаш»" />
+          </label>
+          <div class="pair">
+            <label>
+              ИНН
+              <input
+                id="inn"
+                maxlength="12"
+                inputmode="numeric"
+                value="7415011651"
+              />
+            </label>{' '}
+            <label>
+              КПП
+              <input
+                id="kpp"
+                maxlength="9"
+                inputmode="numeric"
+                value="165001001"
+              />
+            </label>
+          </div>
+          <label>
+            ОГРН
+            <input
+              id="ogrn"
+              maxlength="15"
+              inputmode="numeric"
+              value="1027401995455"
+            />
+          </label>
+          <label>
+            Телефоны
+            <input
+              id="phone"
+              maxlength="60"
+              type="tel"
+              value="+7 (904) 808-18-04"
+            />
+          </label>
+          <label>
+            Электронная почта
+            <input id="email" maxlength="120" type="email" value="1@bik55.ru" />
+          </label>
+          <label>
+            Сайт
+            <input
+              id="website"
+              maxlength="120"
+              type="url"
+              value="https://bik55.ru/"
+            />
+          </label>
+          <label>
+            Ссылка QR
+            <input
+              id="url"
+              type="url"
+              maxlength="240"
+              value="https://bik55.ru/"
+            />
+          </label>
+        </dialog>
+      </main>
+    </form>
+  </body>
+</html>
+<script>
+  import '../scripts/editor';
+
+  const form = document.querySelector<HTMLFormElement>('#editor')!;
+  const toggle = document.querySelector<HTMLButtonElement>('#toggle-panel')!;
+  toggle.addEventListener('click', () => {
+    const expanded = form.classList.toggle('show-settings');
+    toggle.setAttribute('aria-expanded', String(expanded));
+    toggle.querySelector('span')!.textContent = expanded
+      ? 'Предпросмотр'
+      : 'Настройки';
+  });
+  const footerDialog =
+    document.querySelector<HTMLDialogElement>('#footer-dialog')!;
+  document
+    .querySelector<HTMLButtonElement>('#footer-settings')!
+    .addEventListener('click', (event) => {
+      footerDialog.toggleAttribute('data-motion', event.detail > 0);
+      footerDialog.showModal();
+    });
+  document
+    .querySelector<HTMLButtonElement>('#close-footer')!
+    .addEventListener('click', (event) => {
+      if (!event.detail) footerDialog.removeAttribute('data-motion');
+      footerDialog.close();
+    });
+  footerDialog.addEventListener('cancel', () =>
+    footerDialog.removeAttribute('data-motion'),
+  );
+
+  function onBackdrop(event: MouseEvent) {
+    if (event.target !== footerDialog) return false;
+    const { left, right, top, bottom } = footerDialog.getBoundingClientRect();
+    return (
+      event.clientX < left ||
+      event.clientX >= right ||
+      event.clientY < top ||
+      event.clientY >= bottom
+    );
+  }
+
+  let pressedBackdrop = false;
+  footerDialog.addEventListener('pointerdown', (event) => {
+    pressedBackdrop = event.button === 0 && onBackdrop(event);
+  });
+  footerDialog.addEventListener('pointercancel', () => {
+    pressedBackdrop = false;
+  });
+  footerDialog.addEventListener('click', (event) => {
+    const shouldClose = pressedBackdrop && onBackdrop(event);
+    pressedBackdrop = false;
+    if (shouldClose) footerDialog.close();
+  });
+</script>

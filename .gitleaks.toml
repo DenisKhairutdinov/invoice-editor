@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Dependencies, build output, and generated test artifacts"
+paths = [
+  '''(?:^|[\\/])(?:node_modules|dist|\.astro|playwright-report|test-results|\.tools)(?:[\\/]|$)''',
+]
