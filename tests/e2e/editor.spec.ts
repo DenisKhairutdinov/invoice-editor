@@ -501,6 +501,16 @@ test('fills a legacy empty footer and preserves a customized one', async ({
 test('bundled banners resolve under the Pages prefix', async ({ page }) => {
   const summary = page.locator('#banner-picker summary');
   const icon = summary.locator('.banner-placeholder');
+  const option = page.getByRole('button', {
+    name: 'playwright-banner.png',
+    exact: true,
+    includeHidden: true,
+  });
+  const image = option.locator('img');
+  await expect(image).toHaveAttribute('src', /^\/invoice-editor\/.+\.webp$/);
+  await expect
+    .poll(() => image.evaluate((image: HTMLImageElement) => image.naturalWidth))
+    .toBe(720);
   const bounds = (await summary.boundingBox())!;
   const placeholder = (await icon.boundingBox())!;
   expect(placeholder.x + placeholder.width / 2).toBeCloseTo(
@@ -508,11 +518,6 @@ test('bundled banners resolve under the Pages prefix', async ({ page }) => {
     1,
   );
   await summary.click();
-  const option = page.getByRole('button', {
-    name: 'playwright-banner.png',
-    exact: true,
-  });
-  const image = option.locator('img');
   await expect(image).toBeVisible();
   await expect(page.locator('#banner-options')).toHaveCSS('padding', '0px');
   await expect(option).toHaveCSS('padding', '0px');
@@ -520,9 +525,6 @@ test('bundled banners resolve under the Pages prefix', async ({ page }) => {
     (await option.boundingBox())!.width,
     1,
   );
-  await expect
-    .poll(() => image.evaluate((image: HTMLImageElement) => image.naturalWidth))
-    .toBeGreaterThan(0);
   const accessibility = await new AxeBuilder({ page })
     .include('#banner-picker')
     .analyze();
@@ -537,14 +539,17 @@ test('bundled banners resolve under the Pages prefix', async ({ page }) => {
   const summaryBounds = (await summary.boundingBox())!;
   expect(selectedBounds.width).toBeCloseTo(summaryBounds.width - 2, 1);
   expect(selectedBounds.height).toBeCloseTo(summaryBounds.height - 2, 1);
-  const resources = await page.evaluate(() =>
-    performance.getEntriesByType('resource').map((resource) => resource.name),
+  const originalPath = /\/invoice-editor\/_astro\/playwright-banner[^/]*\.png$/;
+  const loaded = await page.evaluate(() =>
+    performance.getEntriesByType('resource').map(({ name }) => name),
   );
-  expect(
-    resources.some((path) =>
-      path.includes('/invoice-editor/_astro/playwright-banner'),
-    ),
-  ).toBe(true);
+  expect(loaded.some((url) => originalPath.test(url))).toBe(false);
+  const original = page.waitForResponse((response) =>
+    originalPath.test(response.url()),
+  );
+  await upload(page, await invoice());
+  expect((await original).ok()).toBe(true);
+  await expect(page.locator('#download')).toBeEnabled();
 });
 
 test('aligns banner, footer and QR to the visible body of each page', async ({

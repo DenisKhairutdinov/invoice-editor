@@ -1,5 +1,6 @@
 ---
 import '@fontsource-variable/inter';
+import { getImage } from 'astro:assets';
 import favicon from '../assets/favicon.svg?url';
 import '../styles/main.scss';
 import arrowLeft from 'lucide-static/icons/chevron-left.svg?url';
@@ -12,6 +13,23 @@ import settingsIcon from 'lucide-static/icons/sliders-horizontal.svg?url';
 import uploadIcon from 'lucide-static/icons/upload.svg?url';
 import noBannerIcon from 'lucide-static/icons/image-off.svg?url';
 import checkIcon from 'lucide-static/icons/check.svg?url';
+
+const bannerImages = import.meta.glob<ImageMetadata>(
+  '../../assets/banners/*.{png,jpg,jpeg,PNG,JPG,JPEG}',
+  { eager: true, import: 'default' },
+);
+const bannerThumbnails = Object.fromEntries(
+  await Promise.all(
+    Object.entries(bannerImages).map(async ([id, image]) => {
+      const thumbnail = await getImage({
+        src: image,
+        width: Math.min(720, image.width),
+        format: 'webp',
+      });
+      return [id, thumbnail.src];
+    }),
+  ),
+);
 
 const formats = [
   { value: 'pdf', label: 'PDF' },
@@ -138,7 +156,11 @@ const formats = [
             <select id="builtin" aria-label="Выбранный баннер" hidden>
               <option value="">Без баннера</option>
             </select>
-            <details id="banner-picker" class="banner-picker">
+            <details
+              id="banner-picker"
+              class="banner-picker"
+              data-thumbnails={JSON.stringify(bannerThumbnails)}
+            >
               <summary aria-label="Без баннера">
                 <img class="banner-placeholder" src={noBannerIcon} alt="" />
               </summary>

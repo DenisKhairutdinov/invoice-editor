@@ -20,6 +20,10 @@ export function createGallery(
 ) {
   const summary = picker.querySelector('summary')!;
   const options = picker.querySelector('#banner-options')!;
+  const thumbnails = JSON.parse(picker.dataset.thumbnails ?? '{}') as Record<
+    string,
+    string
+  >;
   let banners: Banner[] = [];
   let previewUrls: string[] = [];
   bindChoicePicker(select, picker);
@@ -34,6 +38,7 @@ export function createGallery(
       if (summary.querySelector('img')?.src === image.src) continue;
       const thumbnail = image.cloneNode() as HTMLImageElement;
       thumbnail.loading = 'eager';
+      thumbnail.fetchPriority = 'auto';
       summary.replaceChildren(thumbnail);
     }
   }
@@ -43,32 +48,35 @@ export function createGallery(
     for (const url of previewUrls) URL.revokeObjectURL(url);
     previewUrls = [];
     const items = [
-      { id: '', name: 'Без баннера', url: noBannerIcon },
+      { id: '', name: 'Без баннера', url: noBannerIcon, prefetch: false },
       ...Object.keys(builtIn)
         .sort()
         .map((id) => ({
           id,
           name: id.split('/').pop() ?? id,
-          url: builtIn[id],
+          url: thumbnails[id] ?? builtIn[id],
+          prefetch: Boolean(thumbnails[id]),
         })),
       ...banners.map(({ id, name, blob }) => {
         const url = URL.createObjectURL(blob);
         previewUrls.push(url);
-        return { id, name, url };
+        return { id, name, url, prefetch: false };
       }),
     ];
     select.replaceChildren(
       ...items.map(({ name, id }) => new Option(name, id)),
     );
     options.replaceChildren();
-    for (const { id, name, url } of items) {
+    for (const { id, name, url, prefetch } of items) {
       const choice = document.createElement('button');
       choice.type = 'button';
       choice.value = id;
       choice.setAttribute('aria-label', name);
       const image = document.createElement('img');
       image.alt = '';
-      image.loading = 'lazy';
+      image.loading = prefetch ? 'eager' : 'lazy';
+      image.fetchPriority = prefetch ? 'low' : 'auto';
+      image.decoding = 'async';
       image.src = url;
       image.className = id ? 'banner-thumbnail' : 'banner-placeholder';
       choice.append(image);

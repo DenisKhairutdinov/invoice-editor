@@ -12,7 +12,7 @@ const fixture = new URL(
   '../../assets/banners/playwright-banner.png',
   import.meta.url,
 );
-const canvas = createCanvas(700, 110);
+const canvas = createCanvas(1400, 220);
 const context = canvas.getContext('2d');
 context.fillStyle = '#17366f';
 context.fillRect(0, 0, canvas.width, canvas.height);
