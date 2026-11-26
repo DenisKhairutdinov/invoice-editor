@@ -284,8 +284,7 @@ async function generate(current: number) {
     const { compose } = await import('../services/pdf');
     if (current !== revision) return;
     const bytes = await compose(prepared, {
-      banner: banner ? new Uint8Array(await banner.arrayBuffer()) : undefined,
-      bannerType: banner?.type,
+      banner,
       footer,
       lines,
       url,
@@ -344,7 +343,7 @@ function refresh(immediate = false) {
   const current = invalidate();
   if (source && !importing) {
     if (immediate) run(() => generate(current));
-    else timer = window.setTimeout(() => run(() => generate(current)), 250);
+    else timer = window.setTimeout(() => run(() => generate(current)), 80);
   }
 }
 
@@ -352,7 +351,7 @@ function changeSettings(persisted = settings.commit()) {
   if (!persisted) storageWarning('Браузер не разрешил сохранить настройки.');
   updatePreviewSettings();
   gallery.syncSelection();
-  refresh();
+  refresh(true);
 }
 
 function load(file: File, restoring = false) {

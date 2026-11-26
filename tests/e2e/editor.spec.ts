@@ -563,9 +563,16 @@ test('bundled banners resolve under the Pages prefix', async ({ page }) => {
   const original = page.waitForResponse((response) =>
     originalPath.test(response.url()),
   );
+  const originalRequests: string[] = [];
+  page.on('request', (request) => {
+    if (originalPath.test(request.url())) originalRequests.push(request.url());
+  });
   await upload(page, await invoice());
   expect((await original).ok()).toBe(true);
   await expect(page.locator('#download')).toBeEnabled();
+  await page.locator('#fontSize').fill('10');
+  await expect(page.locator('#download')).toBeEnabled();
+  expect(originalRequests).toHaveLength(1);
 });
 
 test('aligns banner, footer and QR to the visible body of each page', async ({

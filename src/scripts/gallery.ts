@@ -26,6 +26,7 @@ export function createGallery(
   >;
   let banners: Banner[] = [];
   let previewUrls: string[] = [];
+  let loadedBuiltIn: { id: string; blob: Blob } | undefined;
   bindChoicePicker(select, picker);
 
   function syncSelection() {
@@ -90,9 +91,12 @@ export function createGallery(
     const banner = banners.find((item) => item.id === id);
     if (banner) return banner.blob;
     if (!Object.hasOwn(builtIn, id)) return undefined;
+    if (loadedBuiltIn?.id === id) return loadedBuiltIn.blob;
     const response = await fetch(builtIn[id]);
     if (!response.ok) throw new Error('Не удалось загрузить баннер.');
-    return await validateImage(await response.blob());
+    const blob = await validateImage(await response.blob());
+    loadedBuiltIn = { id, blob };
+    return blob;
   }
 
   return {

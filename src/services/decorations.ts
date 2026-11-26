@@ -1,4 +1,14 @@
-import { rgb, type PDFDocument, type PDFFont, type PDFPage } from 'pdf-lib';
+import {
+  degrees,
+  drawImage,
+  PDFDocument,
+  PDFObjectCopier,
+  rgb,
+  type PDFFont,
+  type PDFImage,
+  type PDFPage,
+  type PDFRef,
+} from 'pdf-lib';
 import QRCode from 'qrcode';
 import { A4, GAP, PAGE_MARGIN } from './layout';
 
@@ -6,8 +16,7 @@ export type FooterLine = { label?: string; text: string; size?: number };
 type FontBytes = [cyrillic: Uint8Array, latin: Uint8Array];
 
 export type Options = {
-  banner?: Uint8Array;
-  bannerType?: string;
+  banner?: Blob;
   footer: boolean;
   lines: FooterLine[];
   url: string;
@@ -18,6 +27,58 @@ export type Options = {
 
 type TextRun = { text: string; font: PDFFont };
 type Word = { text: string; bold: boolean };
+
+async function prepareImage(embed: (doc: PDFDocument) => Promise<PDFImage>) {
+  const doc = await PDFDocument.create();
+  const image = await embed(doc);
+  await image.embed();
+  const { width, height, ref } = image;
+  const { context } = doc;
+  return {
+    width,
+    height,
+    copyTo(out: PDFDocument) {
+      return PDFObjectCopier.for(context, out.context).copy(ref);
+    },
+  };
+}
+
+type PreparedImage = Awaited<ReturnType<typeof prepareImage>>;
+let cachedBanner: { blob: Blob; image: PreparedImage } | undefined;
+let cachedQr:
+  { url: string; modules: number; image: PreparedImage } | undefined;
+
+async function prepareBanner(blob: Blob) {
+  if (cachedBanner?.blob === blob) return cachedBanner.image;
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const image = await prepareImage((doc) =>
+    blob.type === 'image/png' ? doc.embedPng(bytes) : doc.embedJpg(bytes),
+  );
+  cachedBanner = { blob, image };
+  return image;
+}
+
+async function prepareQr(url: string) {
+  if (cachedQr?.url === url) return cachedQr;
+  const options = { errorCorrectionLevel: 'M' as const, margin: 0 };
+  const { size: modules } = QRCode.create(url, options).modules;
+  const png = await QRCode.toDataURL(url, { ...options, width: modules * 24 });
+  const image = await prepareImage((doc) => doc.embedPng(png));
+  cachedQr = { url, modules, image };
+  return cachedQr;
+}
+
+function drawPreparedImage(
+  page: PDFPage,
+  ref: PDFRef,
+  position: { x: number; y: number; width: number; height: number },
+) {
+  const name = page.node.newXObject('Image', ref);
+  const zero = degrees(0);
+  page.pushOperators(
+    ...drawImage(name, { ...position, rotate: zero, xSkew: zero, ySkew: zero }),
+  );
+}
 
 function lineWidth(runs: TextRun[], size: number) {
   return runs.reduce(
@@ -100,26 +161,15 @@ async function embedFooterText(
 
 export async function prepareDecorations(out: PDFDocument, options: Options) {
   const banner = options.banner
-    ? await (options.bannerType === 'image/png'
-        ? out.embedPng(options.banner)
-        : out.embedJpg(options.banner))
+    ? await prepareBanner(options.banner)
     : undefined;
+  const bannerRef = banner?.copyTo(out);
   const size = options.fontSize ?? 9;
   const lineHeightMultiplier = 1.45;
-  const qrOptions = { errorCorrectionLevel: 'M' as const, margin: 0 };
   const qrCode =
-    options.footer && options.url
-      ? QRCode.create(options.url, qrOptions)
-      : undefined;
-  const quietRatio = qrCode ? 4 / qrCode.modules.size : 0;
-  const qr = qrCode
-    ? await out.embedPng(
-        await QRCode.toDataURL(options.url, {
-          ...qrOptions,
-          width: qrCode.modules.size * 24,
-        }),
-      )
-    : undefined;
+    options.footer && options.url ? await prepareQr(options.url) : undefined;
+  const quietRatio = qrCode ? 4 / qrCode.modules : 0;
+  const qrRef = qrCode?.image.copyTo(out);
   const { lines: text } = options;
   const wrap =
     options.footer && text.length && options.fonts
@@ -146,7 +196,7 @@ export async function prepareDecorations(out: PDFDocument, options: Options) {
           right / (1 + quietRatio),
         )
       : 0;
-    if (qrCode && (qrSize * 25.4) / (72 * qrCode.modules.size) < 0.28)
+    if (qrCode && (qrSize * 25.4) / (72 * qrCode.modules) < 0.28)
       throw new Error(
         'QR-код не помещается с читаемым размером. Проверьте ссылку или отключите QR.',
       );
@@ -154,8 +204,8 @@ export async function prepareDecorations(out: PDFDocument, options: Options) {
     // Keep the scanning zone on the page, outside the QR image.
     const quiet = qrSize * quietRatio;
     const qrLeft = Math.min(right, A4.width - quiet) - qrSize;
-    const alongside = layoutText(qr ? qrLeft - quiet - left : width);
-    const textBottom = !alongside && qr ? qrSize + quiet : 0;
+    const alongside = layoutText(qrCode ? qrLeft - quiet - left : width);
+    const textBottom = !alongside && qrCode ? qrSize + quiet : 0;
     const lines = alongside ?? layoutText(width);
     if (!lines)
       throw new Error(
@@ -179,8 +229,8 @@ export async function prepareDecorations(out: PDFDocument, options: Options) {
           throw new Error(
             'Оформление не помещается на A4. Отключите баннер или подвал.',
           );
-        if (banner)
-          page.drawImage(banner, {
+        if (bannerRef)
+          drawPreparedImage(page, bannerRef, {
             x: left,
             y: A4.height - upper,
             width,
@@ -197,8 +247,8 @@ export async function prepareDecorations(out: PDFDocument, options: Options) {
           }
           lineTop -= size * lineHeightMultiplier;
         }
-        if (qr)
-          page.drawImage(qr, {
+        if (qrRef)
+          drawPreparedImage(page, qrRef, {
             x: qrLeft,
             y: PAGE_MARGIN,
             width: qrSize,
