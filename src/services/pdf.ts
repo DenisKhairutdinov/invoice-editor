@@ -11,9 +11,9 @@ import {
   createCanvas,
   MAX_FILE_BYTES,
   MAX_PAGES,
-  openPdf,
   releaseCanvas,
-} from './pdf-render';
+} from './document-resources';
+import { openPdf } from './pdf-render';
 import { prepareDecorations, type Options } from './decorations';
 
 type PageAnalysis = {

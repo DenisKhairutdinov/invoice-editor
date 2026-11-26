@@ -1,10 +1,6 @@
-import { compose, preparePdf, type PreparedPdf } from '../services/pdf';
-import {
-  exportFile,
-  renderPdfPage,
-  type ExportFormat,
-} from '../services/formats';
-import { MAX_FILE_BYTES, releaseCanvas } from '../services/pdf-render';
+import type { PreparedPdf } from '../services/pdf';
+import type { ExportFormat } from '../services/formats';
+import { MAX_FILE_BYTES, releaseCanvas } from '../services/document-resources';
 import type { FooterLine } from '../services/decorations';
 import { createGallery } from './gallery';
 import { bindChoicePicker } from './choice-picker';
@@ -163,6 +159,7 @@ function clearPreview(canvas?: HTMLCanvasElement) {
 
 async function showPage(bytes: Uint8Array, page: number, current: number) {
   const render = ++pageRevision;
+  const { renderPdfPage } = await import('../services/formats');
   const canvas = await renderPdfPage(bytes, page);
   if (render !== pageRevision || current !== revision) {
     releaseCanvas(canvas);
@@ -284,6 +281,7 @@ async function generate(current: number) {
         ? Promise.all([fetchFont(sansBold), fetchFont(sansLatinBold)])
         : undefined,
     ]);
+    const { compose } = await import('../services/pdf');
     if (current !== revision) return;
     const bytes = await compose(prepared, {
       banner: banner ? new Uint8Array(await banner.arrayBuffer()) : undefined,
@@ -385,6 +383,8 @@ function load(file: File, restoring = false) {
       const pdfBytes = isWord
         ? await (await import('../services/docx-import')).importDocx(bytes)
         : bytes;
+      if (current !== loadRevision) return;
+      const { preparePdf } = await import('../services/pdf');
       const prepared = await preparePdf(pdfBytes, isWord);
       if (current !== loadRevision) return;
       source = { prepared, bytes: pdfBytes, importedWord: isWord };
@@ -557,6 +557,8 @@ button('download').addEventListener('click', () => {
     try {
       if (current !== revision) return;
       status.textContent = 'Подготовка скачивания…';
+      const { exportFile } = await import('../services/formats');
+      if (current !== revision) return;
       const output = await exportFile(bytes, format, name, (index, total) => {
         if (current === revision)
           status.textContent = `Экспорт страницы ${index} из ${total}…`;

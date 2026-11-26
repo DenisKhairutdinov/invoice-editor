@@ -1,4 +1,4 @@
-import { MAX_FILE_BYTES } from '../services/pdf-render';
+import { MAX_FILE_BYTES } from '../services/document-resources';
 
 const entry = `invoice-editor-${encodeURIComponent(import.meta.env.BASE_URL)}.draft`;
 const headerLength = 4;

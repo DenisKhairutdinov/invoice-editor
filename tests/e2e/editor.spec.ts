@@ -90,10 +90,26 @@ test.beforeEach(async ({ page }) => {
 test('one-position PDF and shifted CropBox preserve Cyrillic text, vectors and geometry', async ({
   page,
 }) => {
+  const pdfModules = () =>
+    page.evaluate(() =>
+      performance
+        .getEntriesByType('resource')
+        .map(({ name }) => new URL(name).pathname)
+        .filter((path) =>
+          /\/_astro\/pdf-(editor|renderer)\.[^/]+\.js$/.test(path),
+        ),
+    );
+  expect(await pdfModules()).toEqual([]);
   const original = await invoice({ crop: true, stamp: true });
   await page.locator('#footerEnabled').uncheck();
   await upload(page, original);
   await expect(page.locator('#status')).toContainText('Готово');
+  expect(await pdfModules()).toEqual(
+    expect.arrayContaining([
+      expect.stringMatching(/\/invoice-editor\/_astro\/pdf-editor\./),
+      expect.stringMatching(/\/invoice-editor\/_astro\/pdf-renderer\./),
+    ]),
+  );
   const output = await download(page, 'pdf');
   expect(output.name).toBe('Синтетический счёт_branded.pdf');
   const file = await PDFDocument.load(output.bytes);

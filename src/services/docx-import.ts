@@ -7,7 +7,7 @@ import {
   MAX_FILE_BYTES,
   MAX_PAGES,
   releaseCanvas,
-} from './pdf-render';
+} from './document-resources';
 import { imageType } from './images';
 
 const MAX_UNPACKED_BYTES = 80 * 1024 * 1024;

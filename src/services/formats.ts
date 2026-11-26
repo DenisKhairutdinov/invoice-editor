@@ -1,5 +1,6 @@
 ﻿import { A4 } from './layout';
-import { createCanvas, MAX_PAGES, openPdf, releaseCanvas } from './pdf-render';
+import { createCanvas, MAX_PAGES, releaseCanvas } from './document-resources';
+import { openPdf } from './pdf-render';
 
 export type ExportFormat = 'pdf' | 'jpeg' | 'docx';
 
